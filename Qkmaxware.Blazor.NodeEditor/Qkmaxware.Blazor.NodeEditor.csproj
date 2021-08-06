@@ -6,7 +6,7 @@
     <Authors>Colin Halseth</Authors>
     <PackageTags>blazor, node-editor</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/qkmaxware/Astro.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/qkmaxware/Blazor-NodeEditor.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageDescription>
       A reusable component for viewing and editing node editor style graphs allowing for custom node types.
