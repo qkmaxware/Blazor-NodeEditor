@@ -1,0 +1,67 @@
+@page "/"
+@using Qkmaxware.Blazor.NodeEditor.Components
+@using Qkmaxware.Blazor.NodeEditor
+
+<ProcessGraphEditor AllowEdit=true Graph=graph NodeTypes=nodeTypes>
+    <div class="action-bar">
+        <button @onclick=getResult>Recompute Result</button>
+    </div>
+</ProcessGraphEditor>
+
+@code {
+    private ProcessGraph graph;
+    private INodeGenerator<ProcessStep>[] nodeTypes;
+    private OutputNode resultNode;
+    protected override void OnInitialized() {
+        this.graph = new ProcessGraph();
+        this.nodeTypes = new INodeGenerator<ProcessStep>[]{
+            new SimpleNodeGenerator("Input Number", () => new InputNode()),
+            new SimpleNodeGenerator("Addition", () => new AddNode())
+        };
+
+        var input1 = new InputNode();
+        input1.Position = new Point {
+            X = 0,
+            Y = 0
+        };
+        var input2 = new InputNode();
+        input2.Position = new Point {
+            X = 0,
+            Y = 256
+        };
+        var op = new AddNode();
+        op.Position = new Point{
+            X = 320,
+            Y = 180,
+        };
+        var output = new OutputNode();
+        output.Position = new Point {
+            X = 600,
+            Y = 180
+        };
+        resultNode = output;
+
+        this.graph.AddNode(input1);
+        this.graph.AddNode(input2);
+        this.graph.AddNode(op);
+        this.graph.AddNode(output);
+
+        this.graph.Connect(input1, op, new NodePortReference {
+            FromPortName = "value",
+            ToPortName = "first"
+        });
+        this.graph.Connect(input2, op, new NodePortReference {
+            FromPortName = "value",
+            ToPortName = "second"
+        });
+        this.graph.Connect(op, output, new NodePortReference {
+            FromPortName = "value",
+            ToPortName = "value"
+        });
+    }
+
+    private void getResult() {
+        this.graph.Recalculate(this.resultNode);
+        StateHasChanged();
+    }
+}

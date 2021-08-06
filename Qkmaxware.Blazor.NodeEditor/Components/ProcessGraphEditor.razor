@@ -1,0 +1,287 @@
+﻿@using Qkmaxware.Blazor.NodeEditor
+
+<div 
+    @onmousedown=onMouseDragStart
+    @onmousemove=onMouseDrag 
+    @onmouseout=onMouseDragEnd
+    @onmouseup=onMouseDragEnd
+
+    @onclick="onClickBackground"
+    @oncontextmenu="onRightClickBackground" @oncontextmenu:preventDefault="true"
+
+    class="qk-graph-container" style="width: @WidthCss; height: @HeightCss;">
+    <div style="position: absolute; min-width: 100%; min-height: 100%; left: @(scrollX)px; top: @(scrollY)px; transform: scale(@zoom);">
+        @if (Graph != null) {
+            foreach (var node in Graph.GetNodes()) {
+                <div
+                    @oncontextmenu=@((e) => onRightClickNode(e, node)) @oncontextmenu:preventDefault="true" @oncontextmenu:stopPropagation="true"
+                    class="qk-graph-node" 
+                    style="width: @(NodeWidthPx)px; top: @(node.Position.Y)px; left: @(node.Position.X)px;">
+                    <div class="qk-graph-node-header" style="height: @(HeaderHeightPx)px;" @onmousedown=@((e) => onNodeDragStart(e, node)) @onmousedown:stopPropagation="true">
+                        <span @onclick=@(() => node.Collapsed = !node.Collapsed) @onclick:stopPropagation="true">
+                            @(node.Collapsed ? "\u25B8" : "\u25BE")
+                        </span>
+                        @node.Name
+                    </div>
+                    <div class="qk-graph-node-content">
+                        @if (!node.Collapsed) {
+                        <div class="qk-graph-node-row" style="padding-bottom: 12px;">
+                            <div class="qk-graph-node-half qk-left">
+                                @if (node.Inputs != null) {
+                                    foreach (var input in node.Inputs.Enumerate()) {
+                                        <div class="qk-graph-node-input" style="height: @(NodePortHeightPx)px;">
+                                            @input.Name
+                                            <div class="qk-graph-node-input-circle" @onclick=@(() => deleteIncomingConnectionsOnPort(node, input)) @onclick:stopPropagation="true"></div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            <div class="qk-graph-node-half qk-right">
+                                @if (node.Outputs != null) {
+                                    foreach (var output in node.Outputs.Enumerate()) {
+                                        <div class="qk-graph-node-input" style="height: @(NodePortHeightPx)px;">
+                                            @output.Name
+                                            <div class="qk-graph-node-input-circle" @onclick=@(() => startBuildingConnectionOnPort(node, output)) @onclick:stopPropagation="true"></div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                        @if (node is ParametereizedProcessStep pnode) {
+                            var parametres = pnode.GetParametres();
+                            var properties = parametres.GetType().GetProperties();
+                            foreach (var property in properties) {
+                                <div>
+                                    <FieldDrawer Owner=parametres Property=@property></FieldDrawer>
+                                </div>
+                            }
+                        }
+                        }
+                    </div>
+                </div>
+            }
+            <svg width="@width" height="@height">
+                @foreach (var startNode in Graph.GetNodes()) {
+                    foreach (var endNode in Graph.GetNodesFromOutgoingEdges(startNode)) {
+                        foreach (var edgeData in Graph.GetAllEdgeData(startNode, endNode)) {
+                            if (startNode.Outputs != null && endNode.Inputs != null) {
+                                var start = portLocation(startNode, edgeData.FromPortName, isOutputPort: true);
+                                var end = portLocation(endNode, edgeData.ToPortName, isOutputPort: false);
+                                <line x1="@(start.X)" y1="@(start.Y)" x2="@(end.X)" y2="@(end.Y)" stroke="white"></line>
+                            }
+                        }
+                    }
+                }
+                @if (startConnectionAtNode != null) {
+                    var start = portLocation(startConnectionAtNode, startConnectionAtPort.Name, isOutputPort: true);
+                    <line x1="@(start.X)" y1="@(start.Y)" x2="@(mouseX)" y2="@(mouseY)" stroke="white"></line>
+                }
+            </svg>
+        }
+    </div>
+    <div class="qk-graph-context-menu" style="left: @(contextMenuX)px; top: @(contextMenuY)px; display: @(contextMenuHidden ? "none" : "block")">
+        @if (contextForNode == null) {
+            <div>Add</div>
+            @if (NodeTypes != null) {
+                foreach(var generator in NodeTypes) {
+                    <div class="qk-graph-context-item" @onclick=@((e) => newNodeAtPosition(e, generator))>@generator.GeneratorName()</div>
+                }
+            }
+        } else  {
+            <div>Edit</div>
+            <div class="qk-graph-context-item" @onclick="deleteContextNode">Delete</div>
+        }
+    </div>
+    <div class="qk-graph-overlay">
+        @if (ChildContent != null) {
+            @ChildContent
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool AllowEdit {get; set;}
+    [Parameter] public string WidthCss {get; set;} = "100vw";
+    [Parameter] public string HeightCss {get; set;} = "100vh";
+    [Parameter] public ProcessGraph Graph {get; set;}
+    [Parameter] public INodeGenerator<ProcessStep>[] NodeTypes {get; set;}
+    [Parameter] public RenderFragment ChildContent {get; set;}
+
+    private int width => Graph == null ? 0 : (Graph.GetNodes().Select(x => x.Position.X).Max() + NodeWidthPx);
+    private int height => Graph == null ? 0 : (Graph.GetNodes().Select(x => x.Position.Y).Max() + NodeWidthPx);
+
+    public static readonly int HeaderHeightPx = 32;
+    public static readonly int NodeWidthPx = 240;
+    public static readonly int NodePortHeightPx = 24;
+
+    private int scrollX;
+    private int scrollY;
+    private int zoom = 1;
+
+    private (int X, int Y) getMouseLocation(MouseEventArgs e) {
+        var invScale = 1.0f/this.zoom;
+        var newMouseX = (int)((e.ClientX - scrollX) * invScale);
+        var newMouseY = (int)((e.ClientY - scrollY) * invScale);
+        return (X: newMouseX, Y: newMouseY);
+    }
+
+    private bool dragging = false;
+    private double[] clientPosition;
+    private int[] cachedPosition;
+    private ProcessStep heldNode;
+    private void onMouseDragStart(MouseEventArgs e) {
+        if (!dragging) {
+            clientPosition = new double[]{ e.ClientX, e.ClientY };
+            cachedPosition = new int[]{ this.scrollX, this.scrollY };
+            dragging = true;
+        }
+    }
+
+    private int mouseX;
+    private int mouseY;
+    private void onMouseDrag(MouseEventArgs e) {
+        var pos = getMouseLocation(e);
+        mouseX = pos.X;
+        mouseY = pos.Y;
+
+        if (!dragging)
+            return;
+
+        // Below this is to move the image
+        if (this.cachedPosition == null || this.clientPosition == null) {
+            // If mouse is not pressed
+            return;
+        }
+
+        var x = cachedPosition[0] + (int)(e.ClientX - clientPosition[0]);
+        var y = cachedPosition[1] + (int)(e.ClientY - clientPosition[1]);
+        
+        if (heldNode == null) {
+            this.scrollX = x;
+            this.scrollY = y;
+        } else {
+            this.heldNode.Position.X = Math.Max(0, x); // Prevent below 0
+            this.heldNode.Position.Y = Math.Max(0, y); // Prevent below 0
+        }
+    }
+
+    private void onMouseDragEnd() {
+        this.clientPosition = null;
+        this.cachedPosition = null;
+        this.heldNode = null;
+        dragging = false;
+    }
+
+    private void onNodeDragStart(MouseEventArgs e, ProcessStep node) {
+        if (!AllowEdit)
+            return;
+
+        clientPosition = new double[]{ e.ClientX, e.ClientY };
+        cachedPosition = new int[]{ node.Position.X, node.Position.Y };
+        this.heldNode = node;
+        dragging = true;
+    }
+
+    private int contextMenuX;
+    private int contextMenuY;
+    private bool contextMenuHidden = true;
+    private void onClickBackground(MouseEventArgs e) {
+        contextMenuHidden = true;
+        contextForNode = null;
+        this.startConnectionAtNode = null;
+        this.startConnectionAtPort = null;
+    }
+    private void onRightClickBackground(MouseEventArgs e) {
+        if (AllowEdit && e.Button == 2) {
+            contextMenuHidden = false;
+            contextMenuX = (int)e.ClientX;
+            contextMenuY = (int)e.ClientY;
+        } else {
+            contextMenuHidden = true;
+        }
+    }
+    private ProcessStep contextForNode;
+    private void onRightClickNode(MouseEventArgs e, ProcessStep node) {
+        if (AllowEdit && e.Button == 2) {
+            contextMenuHidden = false;
+            contextMenuX = (int)e.ClientX;
+            contextMenuY = (int)e.ClientY;      
+            contextForNode = node;
+
+        } else {
+            contextMenuHidden = true;
+        }
+    }
+
+    private void newNodeAtPosition(MouseEventArgs e, INodeGenerator<ProcessStep> generator) {
+        if (!AllowEdit)
+            return;
+
+        var node = generator.Generate();
+        var position = getMouseLocation(e);
+        node.Position = new Point {
+            X = position.X,
+            Y = position.Y
+        };
+        this.Graph.AddNode(node);
+    }
+    private void deleteContextNode() {
+        if (AllowEdit && contextForNode != null) {
+            this.Graph.RemoveNode(contextForNode);
+        }
+    }
+
+    private ProcessStep startConnectionAtNode;
+    private NodePort startConnectionAtPort;
+    private void deleteIncomingConnectionsOnPort(ProcessStep node, NodePort port) {
+        if (!AllowEdit)
+            return;
+
+        if (this.startConnectionAtNode != null) {
+            Graph.Connect(startConnectionAtNode, node, new NodePortReference{
+                FromPortName = startConnectionAtPort.Name,
+                ToPortName = port.Name
+            });
+            this.startConnectionAtNode = null;
+            this.startConnectionAtPort = null;
+        } else {
+            Graph.DisconnectAll((linkStart, linkEnd, portData) => linkEnd == node && portData.ToPortName == port.Name);
+        }
+    }
+    private void startBuildingConnectionOnPort(ProcessStep node, NodePort port) {
+        if (!AllowEdit)
+            return;
+
+        if (this.startConnectionAtNode == null) {
+            this.startConnectionAtNode = node;
+            this.startConnectionAtPort = port;
+        } else {
+            this.startConnectionAtNode = null;
+            this.startConnectionAtPort = null;
+        }
+    }
+
+    private Point portLocation(ProcessStep node, string port, bool isOutputPort) {
+        var x = node.Position.X + (isOutputPort ? NodeWidthPx : 0);
+
+        var header = HeaderHeightPx;
+        var buffer = 4 + NodePortHeightPx/2;
+        var containerStartOffersetY = header + buffer;
+        var nodeIndex = isOutputPort ? node.Outputs.IndexOf(port) : node.Inputs.IndexOf(port);
+        
+        if (node.Collapsed || nodeIndex < 0) {
+            var y = node.Position.Y + containerStartOffersetY;
+            return new Point {
+                X = x,
+                Y = y,
+            };
+        }
+        else {
+            var y = node.Position.Y + containerStartOffersetY + NodePortHeightPx * nodeIndex;
+            return new Point {
+                X = x,
+                Y = y,
+            };
+        }
+    }
+}

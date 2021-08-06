@@ -1,0 +1,91 @@
+.qk-graph-container {
+    position: relative; 
+    overflow: hidden;
+    background-color: rgb(36, 35, 44);
+    color: white;
+}
+
+.qk-graph-node {
+    position: absolute;
+    border-radius: 15px;
+    background-color: rgb(59, 59, 59);
+}
+
+.qk-graph-node-header {
+    font-weight: bold;
+    border-radius: 15px 15px 0 0;
+    background-color: rgb(234, 37, 81);
+    padding: 4px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.qk-graph-node-content {
+    padding: 4px 8px;
+    min-height: 48px;
+}
+
+.qk-graph-node-input {
+    display: relative;
+    overflow: hidden;
+    padding: 2px 6px;
+}
+
+.qk-graph-node-input-circle {
+    position: absolute;
+    
+    content: "+";
+    height: 24px;
+    width: 24px;
+    background-color: rgb(236, 183, 69);
+    border-color: rgb(190, 142, 38);
+    border-radius: 1px;
+    border-style: solid;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.qk-left .qk-graph-node-input-circle {
+    left: -12px;
+}
+
+.qk-right .qk-graph-node-input-circle {
+    right: -12px;
+}
+
+.qk-graph-node-row {
+    display: table;
+    width: 100%;
+}
+
+.qk-graph-node-half {
+    width: 49.9%;
+    vertical-align: top;
+    display: inline-block;
+}
+
+.qk-right {
+    text-align: right;
+}
+
+.qk-graph-context-menu {
+    position: absolute;
+    padding: 8px;
+    background-color: rgb(49, 67, 96);
+}
+
+.qk-graph-context-item {
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.qk-graph-context-item:hover {
+    background-color: rgb(73, 86, 107);
+}
+
+.qk-graph-overlay {
+    position: absolute;
+    pointer-events: none;
+    left: 0; right: 0; top: 0; bottom: 0;
+}

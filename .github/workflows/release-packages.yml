@@ -1,0 +1,36 @@
+name: Publish Packages
+on:
+  release: 
+    types: [ published ]
+jobs:
+  publish:
+    name: Publish
+    runs-on: ${{ matrix.os }}
+    strategy: 
+      fail-fast: false
+      matrix: 
+        os: [ ubuntu-latest ]
+        dotnet: [ '5.0.x' ]
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@master
+    - name: Setup .NET Core - ${{ matrix.dotnet }}@${{ matrix.os }}
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '${{ matrix.dotnet }}'
+    - name: Restore Packages
+      env: 
+        GITHUB_USERNAME: qkmaxware
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet restore --configfile nuget.config
+    - name: Pack Nuget Package
+      env:
+        # Work around https://github.com/actions/setup-dotnet/issues/29
+        DOTNET_ROOT: ${{ runner.tool_cache }}/dncs/${{ matrix.dotnet }}/x64
+      run: dotnet pack --configuration Release --output .
+    - name: Publish Nuget Package
+      env:
+        # Work around https://github.com/actions/setup-dotnet/issues/29
+        DOTNET_ROOT: ${{ runner.tool_cache }}/dncs/${{ matrix.dotnet }}/x64
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet nuget push "*.nupkg" --source "qkmaxware" --skip-duplicate --api-key ${GITHUB_TOKEN}

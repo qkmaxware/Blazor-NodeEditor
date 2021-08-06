@@ -1,0 +1,71 @@
+@using System.Reflection
+
+<label>@Property.Name</label>
+<div style="padding-left: 12px;">
+@if (Attribute.IsDefined(Property, typeof(CustomPropertyDrawer))) {
+    var attribute = (CustomPropertyDrawer)Property.GetCustomAttributes(typeof(CustomPropertyDrawer)).First();
+    var drawer = attribute.ComponentType;
+    @if (typeof(BasePropertyDrawer).IsAssignableFrom(drawer)) {
+        @renderWidget(drawer)
+    }
+} else if (Property.PropertyType == typeof(int)) {
+    <input type="number" class="qk-graph-node-field" @bind=integer>
+} else if (Property.PropertyType == typeof(long)) {
+    <input type="number" class="qk-graph-node-field" @bind=bigInteger>
+} else if (Property.PropertyType == typeof(float)) {
+    <input type="number" class="qk-graph-node-field" @bind=real>   
+} else if (Property.PropertyType == typeof(double)) {
+    <input type="number" class="qk-graph-node-field" @bind=bigReal>
+} else if (Property.PropertyType == typeof(bool)) {
+    <input type="checkbox" class="qk-graph-node-field" @bind=boolean>
+} else if (Property.PropertyType == typeof(string)) {
+    <input type="text" class="qk-graph-node-field" @bind=text>
+} else if (Property.PropertyType.IsEnum) {
+    <select class="qk-graph-node-field" @bind=enumeration>
+        @foreach (var value in Enum.GetValues(Property.PropertyType)) {
+            <option value="@((int)value)">@value</option>
+        }
+    </select>
+}
+</div>
+
+@code {
+    [Parameter] public object Owner {get; set;}
+    [Parameter] public PropertyInfo Property {get; set;}
+
+    private bool boolean {
+        get => (bool)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private string text {
+        get => (string)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private int integer {
+        get => (int)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private long bigInteger {
+        get => (long)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private float real {
+        get => (float)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private double bigReal {
+        get => (double)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+    private int enumeration {
+        get => (int)Property.GetValue(Owner);
+        set => Property.SetValue(Owner, value);
+    }
+
+    private RenderFragment renderWidget(Type t) => builder => {
+        builder.OpenComponent(0, t);
+        builder.AddAttribute(1, nameof(BasePropertyDrawer.Instance), this.Owner);
+        builder.AddAttribute(2, nameof(BasePropertyDrawer.Property), this.Property);
+        builder.CloseComponent();
+    };
+}

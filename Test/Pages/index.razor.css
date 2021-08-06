@@ -1,0 +1,22 @@
+.action-bar {
+    position: absolute; 
+    bottom: 0; left: 0; right: 0; 
+    background-color: black; 
+    padding: 12px;
+    pointer-events: all;
+}
+
+button {
+    background-color: red; /* Green */
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: rgb(240, 71, 71);
+}

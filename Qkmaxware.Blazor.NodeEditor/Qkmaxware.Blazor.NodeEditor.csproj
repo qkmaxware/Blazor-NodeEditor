@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <PackageId>Qkmaxware.Blazor.NodeEditor</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Colin Halseth</Authors>
+    <PackageTags>blazor, node-editor</PackageTags>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/qkmaxware/Astro.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageDescription>
+      A reusable component for viewing and editing node editor style graphs allowing for custom node types.
+    </PackageDescription>
+    <PackageOutputPath>./../nupkg</PackageOutputPath>
+
+
+    <TargetFramework>net5.0</TargetFramework>
+    <PackageName>Qkmaxware.Blazor.NodeEditor</PackageName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.md" CopyToOutputDirectory="Always" Pack="true" PackagePath="$(PackageLicenseFile)" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="5.0.8" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+@using Qkmaxware.Blazor.NodeEditor.Components
+@inherits BasePropertyDrawer
+
+<input disabled @bind=value>
+
+@code {
+    float value {
+        get => (float)Property.GetValue(Instance);
+        set {}
+    }
+}
