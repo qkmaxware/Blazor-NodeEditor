@@ -1,5 +1,6 @@
 ﻿@using Qkmaxware.Blazor.NodeEditor
 
+<div class="qk-graph-container" style="position: relative; width: @WidthCss; height: @HeightCss;">
 <div 
     @onmousedown=onMouseDragStart
     @onmousemove=onMouseDrag 
@@ -9,7 +10,7 @@
     @onclick="onClickBackground"
     @oncontextmenu="onRightClickBackground" @oncontextmenu:preventDefault="true"
 
-    class="qk-graph-container" style="width: @WidthCss; height: @HeightCss;">
+    style="width: 100%; height: 100%;">
     <div style="position: absolute; min-width: 100%; min-height: 100%; left: @(scrollX)px; top: @(scrollY)px; transform: scale(@zoom);">
         @if (Graph != null) {
             foreach (var node in Graph.GetNodes()) {
@@ -79,24 +80,33 @@
             </svg>
         }
     </div>
-    <div class="qk-graph-context-menu" style="left: @(contextMenuX)px; top: @(contextMenuY)px; display: @(contextMenuHidden ? "none" : "block")">
-        @if (contextForNode == null) {
-            <div>Add</div>
-            @if (NodeTypes != null) {
-                foreach(var generator in NodeTypes) {
-                    <div class="qk-graph-context-item" @onclick=@((e) => newNodeAtPosition(e, generator))>@generator.GeneratorName()</div>
-                }
+</div>
+<div class="qk-graph-context-menu" style="left: @(contextMenuX)px; top: @(contextMenuY)px; display: @(contextMenuHidden ? "none" : "block")">
+    @if (contextForNode == null) {
+        <div>Add</div>
+        @if (NodeTypes != null) {
+            foreach(var generator in NodeTypes) {
+                <div class="qk-graph-context-item" @onclick=@((e) => newNodeAtPosition(e, generator))>@generator.GeneratorName()</div>
             }
-        } else  {
-            <div>Edit</div>
-            <div class="qk-graph-context-item" @onclick="deleteContextNode">Delete</div>
         }
+    } else  {
+        <div>Edit</div>
+        <div class="qk-graph-context-item" @onclick="deleteContextNode">Delete</div>
+    }
+</div>
+<div class="qk-graph-overlay">
+    @if (error != null) {
+    <div class="qk-graph-notification">
+        <span style="padding-right: 12px;">
+            @error.Message
+        </span>
+        <button @onclick=@(() => error = null)>x</button>
     </div>
-    <div class="qk-graph-overlay">
-        @if (ChildContent != null) {
-            @ChildContent
-        }
-    </div>
+    }
+    @if (ChildContent != null) {
+        @ChildContent
+    }
+</div>
 </div>
 
 @code {
@@ -114,6 +124,7 @@
     public static readonly int NodeWidthPx = 240;
     public static readonly int NodePortHeightPx = 24;
 
+    private Exception error;
     private int scrollX;
     private int scrollY;
     private int zoom = 1;
@@ -238,12 +249,16 @@
             return;
 
         if (this.startConnectionAtNode != null) {
-            Graph.Connect(startConnectionAtNode, node, new NodePortReference{
-                FromPortName = startConnectionAtPort.Name,
-                ToPortName = port.Name
-            });
-            this.startConnectionAtNode = null;
-            this.startConnectionAtPort = null;
+            try {
+                Graph.Connect(startConnectionAtNode, node, new NodePortReference{
+                    FromPortName = startConnectionAtPort.Name,
+                    ToPortName = port.Name
+                });
+                this.startConnectionAtNode = null;
+                this.startConnectionAtPort = null;
+            } catch (Exception e) {
+                this.error = e;
+            }
         } else {
             Graph.DisconnectAll((linkStart, linkEnd, portData) => linkEnd == node && portData.ToPortName == port.Name);
         }

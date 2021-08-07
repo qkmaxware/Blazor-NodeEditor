@@ -89,3 +89,28 @@
     pointer-events: none;
     left: 0; right: 0; top: 0; bottom: 0;
 }
+
+.qk-graph-notification {
+    position: fixed;
+    pointer-events: all;
+    right: 25px;
+    bottom: 86px;
+    padding: 12px;
+    z-index: 1;
+    background-color: rgb(44, 44, 44);
+}
+
+.qk-graph-notification button {
+    border: none;
+    border-left: 2px solid white;
+    background-color: transparent;
+    color: white;
+    padding: 4px 8px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+.qk-graph-notification button:hover {
+    background-color: rgb(234, 37, 81);
+}
